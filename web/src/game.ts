@@ -1,15 +1,9 @@
 import kaplay from "kaplay";
 
-// A complete, playable game in ~75 lines — because KAPLAY gives you sprites,
-// input, gravity, areas and collisions as verbs. Compare this to hand-rolling a
-// game loop, a renderer and a physics step on a raw <canvas>. Replace the body of
-// the "play" scene to build your own game; keep `startGame`'s signature so
-// App.tsx can mount it.
-//
-// Catch: move the basket to catch falling fruit. Miss three and it's game over.
+const VW = 400;
+const VH = 600;
 
-const VW = 400; // virtual width  (KAPLAY letterboxes this to the real canvas)
-const VH = 600; // virtual height
+const FEED_LIMIT = 7; // Too much food before the fish explodes
 
 export function startGame(canvas: HTMLCanvasElement, onScore: (n: number) => void): () => void {
   const k = kaplay({
@@ -18,75 +12,146 @@ export function startGame(canvas: HTMLCanvasElement, onScore: (n: number) => voi
     height: VH,
     letterbox: true,
     background: [24, 24, 27],
-    global: false, // don't pollute window — call methods on `k`
+    global: false,
     pixelDensity: Math.min(window.devicePixelRatio || 1, 2),
   });
 
   k.scene("play", () => {
     let score = 0;
-    let lives = 3;
+    let feedCount = 0;
     onScore(0);
 
-    const basket = k.add([
-      k.rect(72, 20, { radius: 4 }),
-      k.color(16, 185, 129), // brand emerald
-      k.area(),
+    // Draw the bowl
+    k.add([
+      k.circle(140),
+      k.color(59, 130, 246),
+      k.opacity(0.3),
       k.anchor("center"),
-      k.pos(VW / 2, VH - 48),
-      "basket",
+      k.pos(VW / 2, VH / 2 + 60),
+      "bowl"
     ]);
 
-    // Move the basket to the pointer (touch or mouse) — the whole control scheme.
-    k.onMouseMove((mpos) => {
-      basket.pos.x = k.clamp(mpos.x, 36, VW - 36);
-    });
-    // Keyboard fallback for desktop.
-    k.onUpdate(() => {
-      if (k.isKeyDown("left")) basket.pos.x = Math.max(36, basket.pos.x - 6);
-      if (k.isKeyDown("right")) basket.pos.x = Math.min(VW - 36, basket.pos.x + 6);
-    });
+    // Add the fish
+    const fish = k.add([
+      k.pos(VW / 2, VH / 2 + 60),
+      k.rect(60, 26, { radius: 12 }),
+      k.color(245, 158, 11), // orange
+      k.area(),
+      k.anchor("center"),
+      "fish"
+    ]);
+    // Fish tail
+    k.add([
+      k.pos(VW / 2 - 32, VH / 2 + 60),
+      k.rect(18, 20, { radius: 6 }),
+      k.color(245, 158, 11),
+      k.rotate(-0.5),
+      k.anchor("left"),
+      "tail"
+    ]);
+    // Fish eye
+    k.add([
+      k.pos(VW / 2 + 18, VH / 2 + 60 - 6),
+      k.circle(5),
+      k.color(255, 255, 255),
+      "eye"
+    ]);
+    k.add([
+      k.pos(VW / 2 + 21, VH / 2 + 60 - 6),
+      k.circle(2),
+      k.color(24, 24, 27),
+      "pupil"
+    ]);
 
-    // Spawn a piece of fruit that falls at a random speed.
-    function spawnFruit() {
-      k.add([
-        k.circle(k.rand(8, 13)),
-        k.color(k.choose([k.rgb(239, 68, 68), k.rgb(250, 204, 21), k.rgb(59, 130, 246), k.rgb(244, 114, 182)])),
-        k.area(),
-        k.anchor("center"),
-        k.pos(k.rand(24, VW - 24), -20),
-        k.move(k.DOWN, k.rand(120, 220)),
-        "fruit",
-      ]);
-      k.wait(k.rand(0.5, 1.1), spawnFruit);
-    }
-    spawnFruit();
+    // Feed icon at top
+    const feedBtn = k.add([
+      k.pos(VW / 2, 40),
+      k.rect(52, 52, { radius: 15 }),
+      k.color(16, 185, 129),
+      k.area(),
+      k.anchor("center"),
+      "feedBtn"
+    ]);
+    // Food icon
+    k.add([
+      k.pos(VW / 2, 40),
+      k.circle(16),
+      k.color(250, 204, 21),
+      k.anchor("center"),
+      "foodIcon"
+    ]);
+    k.add([
+      k.pos(VW / 2, 40 - 18),
+      k.text("🍞", { size: 30 }),
+      k.anchor("center"),
+      "bread"
+    ]);
 
-    basket.onCollide("fruit", (fruit) => {
-      k.destroy(fruit);
-      score += 1;
+    // Feed action
+    feedBtn.onClick(() => {
+      if (feedCount >= FEED_LIMIT) return;
+      feedCount++;
+      score++;
       onScore(score);
-    });
-
-    // A fruit that falls past the bottom costs a life.
-    k.onUpdate("fruit", (fruit) => {
-      if (fruit.pos.y > VH + 20) {
-        k.destroy(fruit);
-        lives -= 1;
-        if (lives <= 0) k.go("over", score);
+      // Animate food dropping into bowl
+      const food = k.add([
+        k.pos(VW / 2, 60),
+        k.circle(10),
+        k.color(250, 204, 21),
+        k.move(k.DOWN, 320),
+        k.area(),
+        "food"
+      ]);
+      food.onUpdate(() => {
+        if (food.pos.y > VH / 2 + 80) {
+          k.destroy(food);
+        }
+      });
+      // Fish wiggle animation
+      fish.scale = 1.15;
+      k.wait(0.15, () => { fish.scale = 1; });
+      // If overfed, explode
+      if (feedCount === FEED_LIMIT) {
+        k.wait(0.4, () => {
+          k.go("explode", score);
+        });
       }
     });
   });
 
-  k.scene("over", (finalScore: number) => {
-    k.add([k.text("Game Over", { size: 40 }), k.anchor("center"), k.pos(VW / 2, VH / 2 - 30), k.color(255, 255, 255)]);
-    k.add([k.text(`Score: ${finalScore}`, { size: 24 }), k.anchor("center"), k.pos(VW / 2, VH / 2 + 16), k.color(16, 185, 129)]);
-    k.add([k.text("tap to play again", { size: 16 }), k.anchor("center"), k.pos(VW / 2, VH / 2 + 56), k.color(160, 160, 160)]);
+  k.scene("explode", (finalScore: number) => {
+    // Bowl
+    k.add([
+      k.circle(140),
+      k.color(59, 130, 246),
+      k.opacity(0.3),
+      k.anchor("center"),
+      k.pos(VW / 2, VH / 2 + 60),
+      "bowl"
+    ]);
+    // Flesh splats
+    for (let i = 0; i < 6; i++) {
+      k.add([
+        k.pos(VW / 2 + k.rand(-70, 70), VH / 2 + 60 + k.rand(-70, 70)),
+        k.circle(k.rand(18, 28)),
+        k.color(k.choose([
+          k.rgb(245, 158, 11), // orange
+          k.rgb(255, 94, 94),  // red
+          k.rgb(245, 245, 220) // pale
+        ])),
+        k.opacity(0.85),
+        "flesh"
+      ]);
+    }
+    // Game over text
+    k.add([k.text("You overfed the fish!", { size: 32 }), k.anchor("center"), k.pos(VW / 2, VH / 2 - 40), k.color(255, 255, 255)]);
+    k.add([k.text("Fish exploded.", { size: 22 }), k.anchor("center"), k.pos(VW / 2, VH / 2 + 10), k.color(245, 158, 11)]);
+    k.add([k.text(`Score: ${finalScore}`, { size: 22 }), k.anchor("center"), k.pos(VW / 2, VH / 2 + 50), k.color(16, 185, 129)]);
+    k.add([k.text("tap to restart", { size: 16 }), k.anchor("center"), k.pos(VW / 2, VH / 2 + 100), k.color(160, 160, 160)]);
     k.onMousePress(() => k.go("play"));
     k.onKeyPress("space", () => k.go("play"));
   });
 
   k.go("play");
-
-  // KAPLAY manages the RAF loop; return a teardown so React can unmount cleanly.
   return () => k.quit();
 }
