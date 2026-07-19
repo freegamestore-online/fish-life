@@ -5,6 +5,108 @@ const VH = 600;
 
 const FEED_LIMIT = 7; // Too much food before the fish explodes
 
+function drawBowl(k: any) {
+  // Glass bowl base
+  k.add([
+    k.circle(140),
+    k.color(59, 130, 246),
+    k.opacity(0.3),
+    k.anchor("center"),
+    k.pos(VW / 2, VH / 2 + 60),
+    "bowl"
+  ]);
+  // Rim highlight
+  k.add([
+    k.circle(140),
+    k.color(255, 255, 255),
+    k.opacity(0.10),
+    k.anchor("center"),
+    k.pos(VW / 2, VH / 2 + 60 - 3),
+    "bowlRim"
+  ]);
+  // Waterline
+  k.add([
+    k.pos(VW / 2 - 80, VH / 2 + 28),
+    k.rect(160, 6, { radius: 3 }),
+    k.color(147, 197, 253),
+    k.opacity(0.55),
+    "waterline"
+  ]);
+  // Shine
+  k.add([
+    k.pos(VW / 2 - 50, VH / 2 + 60 - 60),
+    k.rect(40, 12, { radius: 6 }),
+    k.color(255, 255, 255),
+    k.opacity(0.13),
+    "shine"
+  ]);
+}
+
+function drawFish(k: any) {
+  // Body
+  const fish = k.add([
+    k.pos(VW / 2, VH / 2 + 60),
+    k.rect(60, 28, { radius: 14 }),
+    k.color(245, 158, 11), // orange
+    k.area(),
+    k.anchor("center"),
+    "fish"
+  ]);
+  // Tail (triangle)
+  k.add([
+    k.pos(VW / 2 - 38, VH / 2 + 60),
+    k.color(245, 158, 11),
+    k.poly([
+      { x: 0, y: 0 },
+      { x: -18, y: -18 },
+      { x: -18, y: 18 }
+    ]),
+    k.opacity(0.92),
+    k.anchor("left"),
+    "tail"
+  ]);
+  // Top fin
+  k.add([
+    k.pos(VW / 2 - 8, VH / 2 + 60 - 14),
+    k.color(250, 204, 21),
+    k.poly([
+      { x: 0, y: 0 },
+      { x: 16, y: -10 },
+      { x: 28, y: 0 }
+    ]),
+    k.opacity(0.92),
+    k.anchor("left"),
+    "topfin"
+  ]);
+  // Bottom fin
+  k.add([
+    k.pos(VW / 2 - 8, VH / 2 + 60 + 14),
+    k.color(250, 204, 21),
+    k.poly([
+      { x: 0, y: 0 },
+      { x: 16, y: 10 },
+      { x: 28, y: 0 }
+    ]),
+    k.opacity(0.92),
+    k.anchor("left"),
+    "bottomfin"
+  ]);
+  // Eye
+  k.add([
+    k.pos(VW / 2 + 18, VH / 2 + 60 - 6),
+    k.circle(5),
+    k.color(255, 255, 255),
+    "eye"
+  ]);
+  k.add([
+    k.pos(VW / 2 + 21, VH / 2 + 60 - 6),
+    k.circle(2),
+    k.color(24, 24, 27),
+    "pupil"
+  ]);
+  return fish;
+}
+
 export function startGame(canvas: HTMLCanvasElement, onScore: (n: number) => void): () => void {
   const k = kaplay({
     canvas,
@@ -21,47 +123,9 @@ export function startGame(canvas: HTMLCanvasElement, onScore: (n: number) => voi
     let feedCount = 0;
     onScore(0);
 
-    // Draw the bowl
-    k.add([
-      k.circle(140),
-      k.color(59, 130, 246),
-      k.opacity(0.3),
-      k.anchor("center"),
-      k.pos(VW / 2, VH / 2 + 60),
-      "bowl"
-    ]);
+    drawBowl(k);
 
-    // Add the fish
-    const fish = k.add([
-      k.pos(VW / 2, VH / 2 + 60),
-      k.rect(60, 26, { radius: 12 }),
-      k.color(245, 158, 11), // orange
-      k.area(),
-      k.anchor("center"),
-      "fish"
-    ]);
-    // Fish tail
-    k.add([
-      k.pos(VW / 2 - 32, VH / 2 + 60),
-      k.rect(18, 20, { radius: 6 }),
-      k.color(245, 158, 11),
-      k.rotate(-0.5),
-      k.anchor("left"),
-      "tail"
-    ]);
-    // Fish eye
-    k.add([
-      k.pos(VW / 2 + 18, VH / 2 + 60 - 6),
-      k.circle(5),
-      k.color(255, 255, 255),
-      "eye"
-    ]);
-    k.add([
-      k.pos(VW / 2 + 21, VH / 2 + 60 - 6),
-      k.circle(2),
-      k.color(24, 24, 27),
-      "pupil"
-    ]);
+    const fish = drawFish(k);
 
     // Feed icon at top
     const feedBtn = k.add([
@@ -120,15 +184,7 @@ export function startGame(canvas: HTMLCanvasElement, onScore: (n: number) => voi
   });
 
   k.scene("explode", (finalScore: number) => {
-    // Bowl
-    k.add([
-      k.circle(140),
-      k.color(59, 130, 246),
-      k.opacity(0.3),
-      k.anchor("center"),
-      k.pos(VW / 2, VH / 2 + 60),
-      "bowl"
-    ]);
+    drawBowl(k);
     // Flesh splats
     for (let i = 0; i < 6; i++) {
       k.add([
