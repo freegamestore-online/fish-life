@@ -286,8 +286,8 @@ export function startGame(canvas: HTMLCanvasElement, onScore: (n: number) => voi
     k.add([k.text("FEED", { size: 10 }), k.anchor("center"), k.pos(VW / 2, 62), k.color(255, 255, 255), k.z(22)]);
 
     // Cooldown bar under feed button
-    const cdBg  = k.add([k.rect(56, 7, { radius: 3 }), k.color(40, 40, 60), k.anchor("center"), k.pos(VW / 2, 74), k.z(20)]);
-    const cdBar = k.add([k.rect(56, 7, { radius: 3 }), k.color(16, 185, 129), k.anchor("left"), k.pos(VW / 2 - 28, 71), k.z(21)]);
+    const cdBg  = k.add([k.rect(56, 7, { radius: 3 }), k.color(40, 40, 60), k.opacity(0), k.anchor("center"), k.pos(VW / 2, 74), k.z(20)]);
+    const cdBar = k.add([k.rect(56, 7, { radius: 3 }), k.color(16, 185, 129), k.opacity(0), k.anchor("left"), k.pos(VW / 2 - 28, 71), k.z(21)]);
     cdBg.opacity = 0; cdBar.opacity = 0;
 
     // ── Action buttons (bottom row) ───────────────────────────────────────────
